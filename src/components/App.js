@@ -1,54 +1,48 @@
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-
 import config from '../config.json';
 
 import {
-loadProvider,
-loadNetwork,
-loadAccount,
-loadTokens,
-loadExchange
-}
-from '../store/interactions.js'
+  loadProvider,
+  loadNetwork,
+  loadAccount,
+  loadTokens,
+  loadExchange
+} from '../store/interactions';
 
 import Navbar from './Navbar'
-
+import Markets from './Markets'
 
 function App() {
-  
   const dispatch = useDispatch()
 
   const loadBlockchainData = async () => {
-  
-    //Connect ethers to blockchain
+    // Connect Ethers to blockchain
     const provider = loadProvider(dispatch)
-    
-    //Fetch current networks chainId (e.g hardhat 331337)
+
+    // Fetch current network's chainId (e.g. hardhat: 31337, kovan: 42)
     const chainId = await loadNetwork(provider, dispatch)
 
-    //Fetch current accoutn & balance from Metamask when changed
-    window.ethereum.on('accountsChanged', () => {
+    // Reload page when network changes
+    window.ethereum.on('chainChanged', () => {
       window.location.reload()
     })
 
-    //fetch current account & balance from Network when changed
+    // Fetch current account & balance from Metamask when changed
     window.ethereum.on('accountsChanged', () => {
       loadAccount(provider, dispatch)
     })
-    
 
-    //token smart contract
+    // Load token smart contracts
     const DApp = config[chainId].DApp
     const mETH = config[chainId].mETH
-    
     await loadTokens(provider, [DApp.address, mETH.address], dispatch)
 
-    //load exchange smart contract
-    const exchange = config[chainId].exchange
-    await loadExchange(provider, exchange.address, dispatch)
+    // Load exchange smart contract
+    const exchangeConfig = config[chainId].exchange
+    await loadExchange(provider, exchangeConfig.address, dispatch)
   }
-  
+
   useEffect(() => {
     loadBlockchainData()
   })
@@ -56,12 +50,12 @@ function App() {
   return (
     <div>
 
-      <Navbar/>
+      <Navbar />
 
       <main className='exchange grid'>
         <section className='exchange__section--left grid'>
 
-          {/* Markets */}
+          <Markets />
 
           {/* Balance */}
 
