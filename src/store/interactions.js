@@ -50,3 +50,69 @@ export const loadExchange = async (provider, address, dispatch) => {
 
   return exchange
 }
+
+export const subscribeToEvents = (exchange, dispatch) => {
+  exchange.on('Deposit', (token, user, amount, balance, event) => {
+    dispatch({ type: 'TRANSFER_SUCCESS', event})
+  })
+}
+
+
+
+//load user balances (wallet & exchange)
+export const loadBalances = async (exchange, tokens, account, dispatch) => {
+  
+  let balance = ethers.utils.formatUnits(await tokens[0].balanceOf(account), 18)
+  dispatch({ type: 'TOKEN_1_BALANCE_LOADED', balance })
+
+  balance = ethers.utils.formatUnits(await exchange.balanceOf(tokens[0].address, account), 18)
+  dispatch({ type: 'EXCHANGE_TOKEN_1_BALANCE_LOADED', balance })
+  
+
+  balance = ethers.utils.formatUnits(await tokens[1].balanceOf(account), 18)
+  dispatch({ type: 'TOKEN_2_BALANCE_LOADED', balance })
+
+  balance = ethers.utils.formatUnits(await exchange.balanceOf(tokens[1].address, account), 18)
+  dispatch({ type: 'EXCHANGE_TOKEN_2_BALANCE_LOADED', balance })
+  return balance
+}
+export const transferTokens = async (provider, exchange, transferType, token, amount, dispatch) => {
+  
+  let transaction
+
+  // Loading state
+  dispatch({ type: 'TRANSFER_REQUEST' })
+
+  try {
+
+    const signer = await provider.getSigner()
+    const amountToTransfer = ethers.utils.parseUnits(amount.toString(), 18)
+
+    // 1. Approve
+    transaction = await token.connect(signer).approve(exchange.address, amountToTransfer)
+    await transaction.wait()
+
+    // 2. Deposit
+    if (transferType === 'Deposit') {
+      transaction = await exchange.connect(signer).depositToken(token.address, amountToTransfer)
+      await transaction.wait()
+    }
+
+    // 3. Withdraw
+    if (transferType === "Withdraw") {
+      transaction = await exchange.connect(signer).withdrawToken(token.address, amountToTransfer)
+      await transaction.wait()
+    }
+
+    // SUCCESS
+    dispatch({ type: 'TRANSFER_SUCCESS' })
+
+  } catch(error) {
+
+    console.log("TRANSFER ERROR:", error)
+    dispatch({ type: 'TRANSFER_FAIL' })
+
+  }
+
+  return transaction
+}
