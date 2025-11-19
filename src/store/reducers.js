@@ -94,18 +94,19 @@ export const tokens = (state = DEFAULT_TOKENS_STATE, action) => {
 const DEFAULT_EXCHANGE_STATE = {
   loaded: false,
   contract: {},
-  balances: [],     // 🔥 importantísimo: balances definidos
   transaction: {
-    transactionType: null,
-    isPending: false,
-    isSuccessful: false,
-    isError: false
+    isSuccessful: false
   },
-  transferInProgress: false,
+  allOrders: {
+    loaded: false,
+    data: []
+  },
   events: []
 }
 
+
 export const exchange = (state = DEFAULT_EXCHANGE_STATE, action) => {
+  let index, data
   switch (action.type) {
 
     case 'EXCHANGE_LOADED':
@@ -176,7 +177,50 @@ export const exchange = (state = DEFAULT_EXCHANGE_STATE, action) => {
         },
         transferInProgress: false
       }
+    case 'NEW_ORDER_REQUEST':
+      return {
+        ...state,
+        transaction: {
+          transactionType: 'New Order',
+          isPending: true,
+          isSuccessful: false
+        },
+      }
+    case 'NEW_ORDER_SUCCESS':
+      index = state.allOrders.data.findIndex(order => order.id === action.orderId)
+      
+      
+      if(index === -1) {
+        data = [...state.allOrders.data, action.order]
+      } else {
+        data = state.allOrders.data
+      }
+      
 
+      return {
+        ...state,
+        allOrders: {
+          ...state.allOrders,
+          data: [...state.allOrders.data, action.order]   // agrega el nuevo order
+        },
+
+        transaction: {
+          transactionType: 'New Order',
+          isPending: false,
+          isSuccessful: true
+        }
+      }
+
+    case 'NEW_ORDER_FAIL':
+      return {
+        ...state,
+          transaction: {
+            transactionType: 'New Order',
+            isPending: false,
+            isSuccesful: false,
+            isError: true
+          }
+      }
     default:
       return state
   }
