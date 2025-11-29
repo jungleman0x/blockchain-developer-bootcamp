@@ -53,148 +53,126 @@ export const loadExchange = async (provider, address, dispatch) => {
 
 export const subscribeToEvents = (exchange, dispatch) => {
   exchange.on('Deposit', (token, user, amount, balance, event) => {
-    dispatch({ type: 'TRANSFER_SUCCESS', event})
+    dispatch({ type: 'TRANSFER_SUCCESS', event })
   })
+
   exchange.on('Withdraw', (token, user, amount, balance, event) => {
-    dispatch({ type: 'TRANSFER_SUCCESS', event})
+    dispatch({ type: 'TRANSFER_SUCCESS', event })
   })
+
   exchange.on('Order', (id, user, tokenGet, amountGet, tokenGive, amountGive, timestamp, event) => {
-  const order = event.args
-  dispatch({ type: 'NEW_ORDER_EVENT', order, event})
-})
+    const order = event.args
+    dispatch({ type: 'NEW_ORDER_SUCCESS', order, event })
+  })
 }
 
+// ------------------------------------------------------------------------------
+// LOAD USER BALANCES (WALLET & EXCHANGE BALANCES)
 
 
-//load user balances (wallet & exchange)
 export const loadBalances = async (exchange, tokens, account, dispatch) => {
-  
   let balance = ethers.utils.formatUnits(await tokens[0].balanceOf(account), 18)
   dispatch({ type: 'TOKEN_1_BALANCE_LOADED', balance })
 
   balance = ethers.utils.formatUnits(await exchange.balanceOf(tokens[0].address, account), 18)
   dispatch({ type: 'EXCHANGE_TOKEN_1_BALANCE_LOADED', balance })
-  
 
   balance = ethers.utils.formatUnits(await tokens[1].balanceOf(account), 18)
   dispatch({ type: 'TOKEN_2_BALANCE_LOADED', balance })
 
   balance = ethers.utils.formatUnits(await exchange.balanceOf(tokens[1].address, account), 18)
   dispatch({ type: 'EXCHANGE_TOKEN_2_BALANCE_LOADED', balance })
-  return balance
+
 }
-export const transferTokens = async (provider, exchange, transferType, token, amount, dispatch) => {
-  
+
+
+// ------------------------------------------------------------------------------
+// LOAD ALL ORDERS
+
+export const loadAllOrders = async (provider, exchange, dispatch) => {
+
+  const block = await provider.getBlockNumber()
+
+  // Fetch canceled orders
+  const cancelStream = await exchange.queryFilter('Cancel', 0, block)
+  const cancelledOrders = cancelStream.map(event => event.args)
+
+  dispatch({ type: 'CANCELLED_ORDERS_LOADED', cancelledOrders })
+
+  // Fetch filled orders
+  const tradeStream = await exchange.queryFilter('Trade', 0, block)
+  const filledOrders = tradeStream.map(event => event.args)
+
+  dispatch({ type: 'FILLED_ORDERS_LOADED', filledOrders })
+
+  // Fetch all orders
+  const orderStream = await exchange.queryFilter('Order', 0, block)
+  const allOrders = orderStream.map(event => event.args)
+
+  dispatch({ type: 'ALL_ORDERS_LOADED', allOrders })
+}
+
+
+// ------------------------------------------------------------------------------
+// TRANSFER TOKENS (DEPOSIT & WITHDRAWS)
+
+export const transferTokens =  async (provider, exchange, transferType, token, amount, dispatch) => {
   let transaction
 
-  // Loading state
   dispatch({ type: 'TRANSFER_REQUEST' })
 
   try {
-
     const signer = await provider.getSigner()
     const amountToTransfer = ethers.utils.parseUnits(amount.toString(), 18)
 
-    // 1. Approve
-    transaction = await token.connect(signer).approve(exchange.address, amountToTransfer)
-    await transaction.wait()
-
-    // 2. Deposit
     if (transferType === 'Deposit') {
+      transaction = await token.connect(signer).approve(exchange.address, amountToTransfer)
+      await transaction.wait()
       transaction = await exchange.connect(signer).depositToken(token.address, amountToTransfer)
-      await transaction.wait()
-    }
-
-    // 3. Withdraw
-    if (transferType === "Withdraw") {
+    } else {
       transaction = await exchange.connect(signer).withdrawToken(token.address, amountToTransfer)
-      await transaction.wait()
     }
 
-    // SUCCESS
-    dispatch({ type: 'TRANSFER_SUCCESS' })
+    await transaction.wait()
 
   } catch(error) {
-
-    console.log("TRANSFER ERROR:", error)
     dispatch({ type: 'TRANSFER_FAIL' })
-
   }
-
-  return transaction
 }
+
+// ------------------------------------------------------------------------------
+// ORDERS (BUY & SELL)
+
 export const makeBuyOrder = async (provider, exchange, tokens, order, dispatch) => {
-
   const tokenGet = tokens[0].address
-
-  // SIEMPRE convertir a string
-  const amountGet = ethers.utils.parseUnits(order.amount.toString(), 18)
-
+  const amountGet = ethers.utils.parseUnits(order.amount, 18)
   const tokenGive = tokens[1].address
-
-  // Multiplicación → convertir a number → convertir a string
-  const totalGive = (Number(order.amount) * Number(order.price)).toString()
-  const amountGive = ethers.utils.parseUnits(totalGive, 18)
+  const amountGive = ethers.utils.parseUnits((order.amount * order.price).toString(), 18)
 
   dispatch({ type: 'NEW_ORDER_REQUEST' })
-  
+
   try {
     const signer = await provider.getSigner()
-
-    const transaction = await exchange
-      .connect(signer)
-      .makeOrder(tokenGet, amountGet, tokenGive, amountGive)
-
+    const transaction = await exchange.connect(signer).makeOrder(tokenGet, amountGet, tokenGive, amountGive)
     await transaction.wait()
-    dispatch({
-      type: 'NEW_ORDER_SUCCESS',
-      order: {
-        token1: tokenGet,
-        token2: tokenGive,
-        amount: order.amount,
-        price: order.price,
-        total: Number(order.amount) * Number(order.price),
-        timestamp: Date.now()
-      }
-    })
-  } catch {
+  } catch (error) {
     dispatch({ type: 'NEW_ORDER_FAIL' })
   }
 }
+
 export const makeSellOrder = async (provider, exchange, tokens, order, dispatch) => {
-
   const tokenGet = tokens[1].address
-  const totalGet = (Number(order.amount) * Number(order.price)).toString()
-  const amountGet = ethers.utils.parseUnits(totalGet, 18)
-
+  const amountGet = ethers.utils.parseUnits((order.amount * order.price).toString(), 18)
   const tokenGive = tokens[0].address
-  const amountGive = ethers.utils.parseUnits(order.amount.toString(), 18)
+  const amountGive = ethers.utils.parseUnits(order.amount, 18)
 
   dispatch({ type: 'NEW_ORDER_REQUEST' })
-  
+
   try {
     const signer = await provider.getSigner()
-
-    const transaction = await exchange
-      .connect(signer)
-      .makeOrder(tokenGet, amountGet, tokenGive, amountGive)
-
+    const transaction = await exchange.connect(signer).makeOrder(tokenGet, amountGet, tokenGive, amountGive)
     await transaction.wait()
-
-    dispatch({
-      type: 'NEW_ORDER_SUCCESS',
-      order: {
-        token1: tokenGet,
-        token2: tokenGive,
-        amount: order.amount,
-        price: order.price,
-        total: Number(order.amount) * Number(order.price),
-        timestamp: Date.now()
-      }
-    })
-
-  } catch {
+  } catch (error) {
     dispatch({ type: 'NEW_ORDER_FAIL' })
   }
 }
-
