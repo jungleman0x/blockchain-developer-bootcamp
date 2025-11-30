@@ -12,6 +12,8 @@ import {
   loadAllOrders
 } from '../store/interactions';
 
+
+
 import Navbar from './Navbar'
 import Markets from './Markets'
 import Balance from './Balance'
@@ -19,6 +21,9 @@ import Order from './Order'
 import Orderbook from './Orderbook'
 import PriceChart from './PriceChart'
 import Trades from './Trades'
+import Transactions from './Transactions'
+
+
 
 function App() {
   const dispatch = useDispatch()
@@ -86,7 +91,7 @@ function App() {
 
           <PriceChart />
 
-          {/* Transactions */}
+          <Transactions />
 
           <Trades />
 
