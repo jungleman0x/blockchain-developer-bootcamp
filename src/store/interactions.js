@@ -192,14 +192,27 @@ export const makeSellOrder = async (provider, exchange, tokens, order, dispatch)
 export const cancelOrder = async (provider, exchange, order, dispatch) => {
   
   dispatch({ type: 'ORDER_CANCEL_REQUEST'})
+  
   try {
     const signer = await provider.getSigner()
     const transaction = await exchange.connect(signer).cancelOrder(order.id)
-    await transaction.wait()
+    const receipt = await transaction.wait()
+
+    // EXTRAER EL EVENTO CANCEL
+    const event = receipt.events.find(e => e.event === 'Cancel')
+
+    dispatch({
+      type: 'ORDER_CANCEL_SUCCESS',
+      order,
+      event    // <<--- ESTO ES NECESARIO PARA TU REDUCER
+    })
+
   } catch (error) {
+    console.log(error)
     dispatch({ type: 'ORDER_CANCEL_FAIL' })
   }
 }
+
 //--------------------------------------------------------------------------------------------------------------
 //FILL ORDER
 export const fillOrder = async (provider, exchange, order, dispatch) => {

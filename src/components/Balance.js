@@ -8,7 +8,7 @@ import { loadBalances, transferTokens } from '../store/interactions';
 const Balance = () => {
   
   const [isDeposit, setIsDeposit] = useState(true)
-  const [isWithdrawal, setWithdrawal] = useState(true)
+
   
   const [token1TransferAmount, setToken1TransferAmount] = useState(0);
   const [token2TransferAmount, setToken2TransferAmount] = useState(0);
@@ -75,7 +75,7 @@ const Balance = () => {
     if(exchange && tokens[0] && tokens[1] && account) {
       loadBalances(exchange, tokens, account, dispatch);
     }
-  }, [exchange, tokens, account, transferInProgress])
+  }, [exchange, tokens, account, transferInProgress, dispatch])
 
   return (
     <div className='component exchange__transfers'>
