@@ -17,16 +17,16 @@
 
   "11155111": {
     "exchange": {
-      "address": "0xC5ee1c429E21011a9CC492B7d7BaA942d1175bB4"
+      "address": "0x03C29BCD7705b8013535276308b0993e3cE79EEf"
     },
     "DApp": {
-      "address": "0xdFd7C653AA207101E118174d3F39DC5A617F0495"
+      "address": "0x5c4c005C1E1C56C9506270C1D8eAD6E8612A4731"
     },
     "mETH": {
-      "address": "0xa06E2D1cC65222CF8cEeF4b135bcEBFdc83af746"
+      "address": "0xe8632197584F18B0F7D66804e432c202b78F1ccD"
     },
     "mDAI": {
-      "address": "0x04dce1261b08408Cb959b8EFAC942fac932d1A83"
+      "address": "0x815A1a40F19067Bd65B311b5C85b1E13F17401eC"
     },
     "explorerURL": "https://sepolia.etherscan.io/"
   }
