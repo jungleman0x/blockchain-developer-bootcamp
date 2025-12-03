@@ -25,10 +25,5 @@ module.exports = {
       url: `https://polygon-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
       accounts: privateKeys.split(","),
     },
-
-    polygonMumbai: {
-      url: `https://polygon-mumbai.infura.io/v3/${process.env.INFURA_API_KEY}`,
-      accounts: privateKeys.split(","),
-    },
   },
 };
